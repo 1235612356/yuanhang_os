@@ -1,0 +1,2385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>远航操作系统 - Yuanhang OS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'os-primary': '#5e35b1',
+                        'os-secondary': '#3949ab',
+                        'os-accent': '#7e57c2',
+                        'os-dark': '#1a237e',
+                        'os-light': '#e8eaf6',
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-slow': 'bounce 3s infinite'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            font-family: 'Exo 2', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a237e, #311b92, #4a148c);
+            height: 100vh;
+            overflow: hidden;
+            color: white;
+            perspective: 1000px;
+        }
+        
+        .os-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .desktop-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1531315630201-bb15abeb1653?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+            filter: blur(2px) brightness(0.5);
+            opacity: 0.7;
+            z-index: -1;
+        }
+        
+        /* 桌面图标样式 */
+        .desktop-icon {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+        }
+        
+        .desktop-icon:hover {
+            background: rgba(94, 53, 177, 0.3);
+            transform: translateY(-5px);
+        }
+        
+        .desktop-icon i {
+            font-size: 32px;
+            margin-bottom: 8px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+        }
+        
+        /* 任务栏样式 */
+        .taskbar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            backdrop-filter: blur(20px);
+            background: var(--glass-bg);
+            border-top: 1px solid var(--glass-border);
+            z-index: 100;
+        }
+        
+        .start-btn {
+            height: 40px;
+            width: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7e57c2, #5e35b1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(126, 87, 194, 0.6);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .start-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 25px rgba(126, 87, 194, 0.8);
+        }
+        
+        .taskbar-apps {
+            display: flex;
+            margin-left: 20px;
+            gap: 10px;
+        }
+        
+        .taskbar-app {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+        }
+        
+        .taskbar-app:hover {
+            background: rgba(94, 53, 177, 0.3);
+        }
+        
+        .taskbar-app.active {
+            background: rgba(94, 53, 177, 0.5);
+            box-shadow: 0 0 10px rgba(126, 87, 194, 0.6);
+        }
+        
+        /* 开始菜单样式 */
+        .start-menu {
+            position: absolute;
+            bottom: 60px;
+            left: 20px;
+            width: 400px;
+            height: 900px;
+            border-radius: 20px;
+            overflow: hidden;
+            display: none;
+            backdrop-filter: blur(30px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            z-index: 90;
+            transform-origin: bottom left;
+        }
+        
+        .start-menu-header {
+            height: 120px;
+            background: linear-gradient(90deg, rgba(94, 53, 177, 0.6), rgba(57, 73, 171, 0.6));
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            padding: 20px;
+        }
+        
+        .app-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .app-item:hover {
+            background: rgba(94, 53, 177, 0.3);
+            transform: translateY(-5px);
+        }
+        
+        .app-item i {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        /* 窗口样式 */
+        .window {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 600px;
+            height: 400px;
+            border-radius: 15px;
+            overflow: hidden;
+            display: none;
+            backdrop-filter: blur(20px);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--glass-shadow);
+            z-index: 10;
+            transform: translate(-50%, -50%);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        .window.maximized {
+            width: 95% !important;
+            height: 85% !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            border-radius: 0;
+        }
+        
+        .window-header {
+            height: 40px;
+            background: linear-gradient(90deg, rgba(94, 53, 177, 0.6), rgba(57, 73, 171, 0.6));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            cursor: move;
+        }
+        
+        .window-title {
+            font-weight: 500;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .window-control {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .window-control:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .window-control.minimize:hover { background: rgba(255, 255, 255, 0.3); }
+        .window-control.maximize:hover { background: rgba(255, 255, 255, 0.3); }
+        .window-control.close:hover { background: #ff5f57; }
+        
+        .window-content {
+            padding: 20px;
+            height: calc(100% - 40px);
+            overflow-y: auto;
+        }
+        
+        /* 动画元素 */
+        .floating-element {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(126, 87, 194, 0.5), transparent 70%);
+            z-index: -1;
+        }
+        
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+            z-index: -1;
+        }
+        
+        /* 文档窗口内容 */
+        .doc-section {
+            margin-bottom: 25px;
+        }
+        
+        .code-block {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+        
+        /* 插件框架样式 */
+        .plugin-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .plugin-card:hover {
+            background: rgba(94, 53, 177, 0.3);
+            transform: translateY(-3px);
+        }
+        
+        /* 加载动画 */
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .loader-spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(255, 255, 255, 0.1);
+            border-top: 8px solid #7e57c2;
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+        }
+        
+        .loader-text {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        /* 日历样式 */
+        .calendar-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .calendar-nav-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .calendar-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .calendar-view-toggle {
+            display: flex;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .calendar-view-btn {
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-view-btn.active {
+            background: rgba(94, 53, 177, 0.5);
+        }
+        
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            flex-grow: 1;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .calendar-day:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .calendar-day.today {
+            background: rgba(94, 53, 177, 0.3);
+            box-shadow: 0 0 10px rgba(126, 87, 194, 0.3);
+        }
+        
+        .calendar-day.other-month {
+            opacity: 0.3;
+        }
+        
+        .calendar-day.has-event::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #7e57c2;
+        }
+        
+        .calendar-events {
+            margin-top: 15px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        
+        .calendar-event {
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            background: rgba(94, 53, 177, 0.2);
+            font-size: 14px;
+        }
+        
+        /* 文件管理器样式 */
+        .file-manager {
+            display: flex;
+            height: 100%;
+        }
+        
+        .file-sidebar {
+            width: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .file-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .file-item:hover {
+            background: rgba(94, 53, 177, 0.2);
+        }
+        
+        .file-item i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+        }
+        
+        .file-grid-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .file-grid-item:hover {
+            background: rgba(94, 53, 177, 0.2);
+            transform: translateY(-3px);
+        }
+        
+        .file-grid-item i {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        /* 设置面板样式 */
+        .settings-panel {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            height: 100%;
+        }
+        
+        .settings-sidebar {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .settings-content {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .settings-category {
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .settings-category:hover, .settings-category.active {
+            background: rgba(94, 53, 177, 0.2);
+        }
+        
+        .settings-option {
+            margin-bottom: 20px;
+        }
+        
+        .settings-option label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .settings-option input[type="text"],
+        .settings-option input[type="password"],
+        .settings-option select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        
+        .settings-option input[type="range"] {
+            width: 100%;
+        }
+        
+        /* 终端样式 */
+        .terminal {
+            background: rgba(0, 0, 0, 0.8);
+            height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .terminal-header {
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .terminal-content {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .terminal-input {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .terminal-prompt {
+            margin-right: 10px;
+            color: #7e57c2;
+        }
+        
+        .terminal-input input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            font-family: monospace;
+            outline: none;
+        }
+        
+        /* 计算器样式 */
+        .calculator {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 20px;
+        }
+        
+        .calculator-display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: right;
+            font-size: 24px;
+            font-family: monospace;
+            margin-bottom: 15px;
+            min-height: 60px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .calculator-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            flex-grow: 1;
+        }
+        
+        .calculator-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 18px;
+        }
+        
+        .calculator-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .calculator-btn.operator {
+            background: rgba(94, 53, 177, 0.3);
+        }
+        
+        .calculator-btn.operator:hover {
+            background: rgba(94, 53, 177, 0.5);
+        }
+        
+        .calculator-btn.equals {
+            background: rgba(57, 73, 171, 0.5);
+        }
+        
+        .calculator-btn.equals:hover {
+            background: rgba(57, 73, 171, 0.7);
+        }
+        
+        /* 浏览器样式 */
+        .browser {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .browser-navbar {
+            display: flex;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .browser-url-bar {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 8px 15px;
+            margin: 0 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .browser-url-bar i {
+            margin-right: 8px;
+            color: #7e57c2;
+        }
+        
+        .browser-url-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            outline: none;
+        }
+        
+        .browser-nav-btn {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .browser-nav-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .browser-content {
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .browser-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+        
+        .browser-tabs {
+            display: flex;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .browser-tab {
+            padding: 5px 15px;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+            background: rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+        
+        .browser-tab.active {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .browser-tab-close {
+            margin-left: 8px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .browser-tab-close:hover {
+            background: rgba(255, 0, 0, 0.3);
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .start-menu {
+                width: 90%;
+                height: 70%;
+            }
+            
+            .window {
+                width: 90%;
+                height: 70%;
+            }
+            
+            .app-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="os-container">
+        <!-- 背景层 -->
+        <div class="desktop-bg"></div>
+        
+        <!-- 加载动画 -->
+        <div class="loader">
+            <div class="loader-spinner"></div>
+            <div class="loader-text">远航系统启动中...</div>
+        </div>
+        
+        <!-- 桌面图标 -->
+        <div class="desktop-icon" style="top: 20%; left: 10%;" data-app="file-explorer">
+            <i class="fas fa-folder"></i>
+            <span>文件资源管理器</span>
+        </div>
+        
+        <div class="desktop-icon" style="top: 20%; left: 25%;" data-app="doc-viewer">
+            <i class="fas fa-book"></i>
+            <span>开发文档</span>
+        </div>
+        
+        <div class="desktop-icon" style="top: 40%; left: 10%;" data-app="settings">
+            <i class="fas fa-cog"></i>
+            <span>系统设置</span>
+        </div>
+        
+        <div class="desktop-icon" style="top: 40%; left: 25%;" data-app="gallery">
+            <i class="fas fa-images"></i>
+            <span>图片库</span>
+        </div>
+        
+        <div class="desktop-icon" style="top: 60%; left: 10%;" data-app="ditiepai">
+            <i class="fas fa-subway"></i>
+            <span>地铁派</span>
+        </div>
+        
+        <!-- 任务栏 -->
+        <div class="taskbar">
+            <div class="start-btn" id="start-btn">
+                <i class="fas fa-rocket"></i>
+            </div>
+
+            <div class="taskbar-apps flex-grow">
+                <!-- 任务栏应用图标将通过JS动态添加 -->
+            </div>
+
+            <!-- 日历图标 -->
+            <div class="taskbar-app mr-2" id="taskbar-calendar">
+                <i class="fas fa-calendar"></i>
+            </div>
+
+            <!-- 时钟 -->
+            <div class="flex items-center px-3 text-sm font-mono select-none">
+                <span id="taskbar-clock">--:--:--</span>
+            </div>
+        </div>
+        
+        <!-- 开始菜单 -->
+        <div class="start-menu" id="start-menu">
+            <div class="start-menu-header">
+                <div class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-indigo-700 flex items-center justify-center">
+                    <i class="fas fa-rocket text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold">远航操作系统</h1>
+                    <p class="text-indigo-200">Yuanhang OS v1.2</p>
+                </div>
+            </div>
+            
+            <div class="app-grid" id="app-grid">
+                <!-- 应用将通过JS动态添加 -->
+            </div>
+        </div>
+        
+        <!-- 窗口模板 -->
+        <div class="window" id="window-template">
+            <div class="window-header">
+                <div class="window-title">
+                    <i class="fas fa-file-alt"></i>
+                    <span>窗口标题</span>
+                </div>
+                <div class="window-controls">
+                    <div class="window-control minimize">
+                        <i class="fas fa-minus"></i>
+                    </div>
+                    <div class="window-control maximize">
+                        <i class="fas fa-expand"></i>
+                    </div>
+                    <div class="window-control close">
+                        <i class="fas fa-times"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="window-content">
+                <!-- 窗口内容 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 远航操作系统核心模块
+        const YuanhangOS = (function() {
+            // 私有变量
+            let zIndex = 10;
+            let activeWindow = null;
+            const windows = {};
+            const plugins = {};
+            
+            // DOM元素引用
+            const elements = {
+                startBtn: document.getElementById('start-btn'),
+                startMenu: document.getElementById('start-menu'),
+                taskbarApps: document.querySelector('.taskbar-apps'),
+                appGrid: document.getElementById('app-grid'),
+                taskbarCalendar: document.getElementById('taskbar-calendar'),
+                clock: document.getElementById('taskbar-clock')
+            };
+            
+            // 初始化系统
+            function init() {
+                // 隐藏加载动画
+                setTimeout(() => {
+                    document.querySelector('.loader').style.display = 'none';
+                    createFloatingElements();
+                    createParticles();
+                }, 2000);
+
+                // 初始化时钟
+                updateClock();
+                setInterval(updateClock, 1000);
+                
+                // 开始菜单控制
+                elements.startBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    elements.startMenu.style.display = elements.startMenu.style.display === 'block' ? 'none' : 'block';
+                });
+                
+                // 点击其他地方关闭开始菜单
+                document.addEventListener('click', function(e) {
+                    if (e.target !== elements.startMenu && !elements.startMenu.contains(e.target) && e.target !== elements.startBtn) {
+                        elements.startMenu.style.display = 'none';
+                    }
+                });
+                
+                // 任务栏日历点击事件
+                elements.taskbarCalendar.addEventListener('click', function() {
+                    openApp('calendar');
+                });
+                
+                // 初始化插件系统
+                initPluginSystem();
+            }
+            
+            // 更新时钟
+            function updateClock() {
+                const now = new Date();
+                const h = String(now.getHours()).padStart(2,'0');
+                const m = String(now.getMinutes()).padStart(2,'0');
+                const s = String(now.getSeconds()).padStart(2,'0');
+                elements.clock.textContent = `${h}:${m}:${s}`;
+            }
+            
+            // 初始化插件系统
+            function initPluginSystem() {
+                // 注册所有内置插件
+                registerPlugin(FileExplorerPlugin);
+                registerPlugin(DocViewerPlugin);
+                registerPlugin(SettingsPlugin);
+                registerPlugin(GalleryPlugin);
+                registerPlugin(MusicPlugin);
+                registerPlugin(BrowserPlugin);
+                registerPlugin(StorePlugin);
+                registerPlugin(TerminalPlugin);
+                registerPlugin(CalculatorPlugin);
+                registerPlugin(CalendarPlugin);
+                registerPlugin(DeepseekBrowserPlugin);
+                registerPlugin(DitiepaiPlugin);
+                
+                // 渲染开始菜单
+                renderStartMenu();
+                
+                // 添加桌面图标事件
+                const desktopIcons = document.querySelectorAll('.desktop-icon');
+                desktopIcons.forEach(icon => {
+                    icon.addEventListener('click', function() {
+                        const appId = this.dataset.app;
+                        openApp(appId);
+                        elements.startMenu.style.display = 'none';
+                    });
+                });
+            }
+            
+            // 注册插件
+            function registerPlugin(plugin) {
+                plugins[plugin.id] = plugin;
+            }
+            
+            // 渲染开始菜单
+            function renderStartMenu() {
+                elements.appGrid.innerHTML = '';
+                
+                for (const id in plugins) {
+                    const plugin = plugins[id];
+                    if (plugin.showInStartMenu !== false) {
+                        const appItem = document.createElement('div');
+                        appItem.className = 'app-item';
+                        appItem.dataset.app = id;
+                        appItem.innerHTML = `
+                            <i class="${plugin.icon}"></i>
+                            <span>${plugin.name}</span>
+                        `;
+                        
+                        appItem.addEventListener('click', () => {
+                            openApp(id);
+                            elements.startMenu.style.display = 'none';
+                        });
+                        
+                        elements.appGrid.appendChild(appItem);
+                    }
+                }
+            }
+            
+            // 打开应用
+            function openApp(appId) {
+                // 检查插件是否存在
+                if (!plugins[appId]) {
+                    console.error(`应用 ${appId} 未注册`);
+                    return;
+                }
+                
+                // 如果应用已经打开，则将其置顶
+                if (windows[appId]) {
+                    focusWindow(windows[appId]);
+                    return;
+                }
+                
+                // 创建新窗口
+                const windowTemplate = document.getElementById('window-template');
+                const newWindow = windowTemplate.cloneNode(true);
+                newWindow.id = `window-${appId}`;
+                newWindow.style.display = 'block';
+                newWindow.style.zIndex = zIndex++;
+                
+                // 设置窗口内容
+                const content = newWindow.querySelector('.window-content');
+                const plugin = plugins[appId];
+                
+                newWindow.querySelector('.window-title span').textContent = plugin.name;
+                newWindow.querySelector('.window-title i').className = plugin.icon;
+                
+                // 调用插件的render方法
+                if (typeof plugin.render === 'function') {
+                    content.innerHTML = plugin.render();
+                    
+                    // 调用初始化方法
+                    if (typeof plugin.init === 'function') {
+                        plugin.init(newWindow);
+                    }
+                } else {
+                    content.innerHTML = `<div class="p-8 text-center">
+                        <i class="${plugin.icon} text-5xl mb-4 text-indigo-300"></i>
+                        <h2 class="text-2xl font-bold mb-4">${plugin.name}</h2>
+                        <p class="text-gray-300">此应用正在开发中，敬请期待！</p>
+                    </div>`;
+                }
+                
+                document.querySelector('.os-container').appendChild(newWindow);
+                windows[appId] = newWindow;
+                focusWindow(newWindow);
+                
+                // 添加任务栏图标
+                const taskbarApp = document.createElement('div');
+                taskbarApp.className = 'taskbar-app';
+                taskbarApp.innerHTML = `<i class="${plugin.icon}"></i>`;
+                taskbarApp.dataset.app = appId;
+                
+                taskbarApp.addEventListener('click', () => {
+                    if (newWindow.style.display === 'none') {
+                        newWindow.style.display = 'block';
+                        focusWindow(newWindow);
+                    } else {
+                        focusWindow(newWindow);
+                    }
+                });
+                
+                elements.taskbarApps.appendChild(taskbarApp);
+                
+                // 窗口控制事件
+                const minimizeBtn = newWindow.querySelector('.minimize');
+                const maximizeBtn = newWindow.querySelector('.maximize');
+                const closeBtn = newWindow.querySelector('.close');
+                
+                minimizeBtn.addEventListener('click', () => {
+                    newWindow.style.display = 'none';
+                    taskbarApp.classList.remove('active');
+                });
+                
+                maximizeBtn.addEventListener('click', () => {
+                    newWindow.classList.toggle('maximized');
+                    maximizeBtn.querySelector('i').className = newWindow.classList.contains('maximized') 
+                        ? 'fas fa-compress' 
+                        : 'fas fa-expand';
+                });
+                
+                closeBtn.addEventListener('click', () => {
+                    newWindow.remove();
+                    taskbarApp.remove();
+                    delete windows[appId];
+                    
+                    // 调用插件的销毁方法
+                    if (typeof plugin.destroy === 'function') {
+                        plugin.destroy();
+                    }
+                });
+                
+                // 窗口拖动
+                makeWindowDraggable(newWindow);
+            }
+            
+            // 聚焦窗口
+            function focusWindow(window) {
+                window.style.zIndex = zIndex++;
+                window.style.opacity = '1';
+                
+                // 更新任务栏状态
+                document.querySelectorAll('.taskbar-app').forEach(app => {
+                    app.classList.remove('active');
+                });
+                
+                const appId = window.id.replace('window-', '');
+                const taskbarApp = document.querySelector(`.taskbar-app[data-app="${appId}"]`);
+                if (taskbarApp) {
+                    taskbarApp.classList.add('active');
+                }
+                
+                activeWindow = window;
+            }
+            
+            // 使窗口可拖动
+            function makeWindowDraggable(window) {
+                const header = window.querySelector('.window-header');
+                let posX = 0, posY = 0, mouseX = 0, mouseY = 0;
+                
+                header.addEventListener('mousedown', dragMouseDown);
+                
+                function dragMouseDown(e) {
+                    e.preventDefault();
+                    focusWindow(window);
+                    
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                    
+                    document.addEventListener('mousemove', elementDrag);
+                    document.addEventListener('mouseup', closeDragElement);
+                }
+                
+                function elementDrag(e) {
+                    e.preventDefault();
+                    
+                    posX = mouseX - e.clientX;
+                    posY = mouseY - e.clientY;
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                    
+                    window.style.top = (window.offsetTop - posY) + "px";
+                    window.style.left = (window.offsetLeft - posX) + "px";
+                }
+                
+                function closeDragElement() {
+                    document.removeEventListener('mousemove', elementDrag);
+                    document.removeEventListener('mouseup', closeDragElement);
+                }
+            }
+            
+            // 创建浮动背景元素
+            function createFloatingElements() {
+                const container = document.querySelector('.os-container');
+                const sizes = [120, 180, 220, 150];
+                
+                sizes.forEach(size => {
+                    const element = document.createElement('div');
+                    element.className = 'floating-element';
+                    element.style.width = `${size}px`;
+                    element.style.height = `${size}px`;
+                    element.style.top = `${Math.random() * 100}%`;
+                    element.style.left = `${Math.random() * 100}%`;
+                    element.style.animation = `float ${6 + Math.random() * 4}s ease-in-out infinite`;
+                    element.style.animationDelay = `${Math.random() * 2}s`;
+                    container.appendChild(element);
+                });
+            }
+            
+            // 创建粒子效果
+            function createParticles() {
+                const container = document.querySelector('.os-container');
+                const particleCount = 50;
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    
+                    const size = Math.random() * 5 + 1;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    
+                    particle.style.top = `${Math.random() * 100}%`;
+                    particle.style.left = `${Math.random() * 100}%`;
+                    
+                    // 随机动画
+                    const animationDuration = 10 + Math.random() * 20;
+                    particle.style.animation = `float ${animationDuration}s linear infinite`;
+                    particle.style.animationDelay = `${Math.random() * 5}s`;
+                    
+                    container.appendChild(particle);
+                }
+            }
+            
+            // 公共API
+            return {
+                init,
+                registerPlugin,
+                openApp,
+                focusWindow,
+                getPlugins: () => plugins,
+                getWindows: () => windows
+            };
+        })();
+
+        // 插件定义
+        // 文件资源管理器插件
+        const FileExplorerPlugin = {
+            id: 'file-explorer',
+            name: '文件资源管理器',
+            icon: 'fas fa-folder',
+            render: function() {
+                return `
+                    <div class="file-manager">
+                        <div class="file-sidebar">
+                            <h3 class="font-bold mb-4">快速访问</h3>
+                            <div class="file-item" data-folder="home">
+                                <i class="fas fa-home"></i>
+                                <span>主目录</span>
+                            </div>
+                            <div class="file-item" data-folder="downloads">
+                                <i class="fas fa-download"></i>
+                                <span>下载</span>
+                            </div>
+                            <div class="file-item" data-folder="pictures">
+                                <i class="fas fa-image"></i>
+                                <span>图片</span>
+                            </div>
+                            <div class="file-item" data-folder="music">
+                                <i class="fas fa-music"></i>
+                                <span>音乐</span>
+                            </div>
+                            <div class="file-item" data-folder="documents">
+                                <i class="fas fa-file"></i>
+                                <span>文档</span>
+                            </div>
+                        </div>
+                        <div class="file-content">
+                            <div class="file-grid" id="file-grid">
+                                <!-- 文件将通过JS动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+            init: function(window) {
+                const fileGrid = window.querySelector('#file-grid');
+                const fileItems = window.querySelectorAll('.file-item');
+                
+                // 文件数据
+                const files = {
+                    home: [
+                        { name: '项目文件', icon: 'fas fa-folder', type: 'folder', color: 'text-yellow-400' },
+                        { name: '个人文档', icon: 'fas fa-folder', type: 'folder', color: 'text-yellow-400' },
+                        { name: '简历.pdf', icon: 'fas fa-file-pdf', type: 'file', color: 'text-red-500' },
+                        { name: '计划书.docx', icon: 'fas fa-file-word', type: 'file', color: 'text-blue-500' }
+                    ],
+                    downloads: [
+                        { name: '软件安装包', icon: 'fas fa-folder', type: 'folder', color: 'text-yellow-400' },
+                        { name: 'chrome_installer.exe', icon: 'fas fa-file-excel', type: 'file', color: 'text-green-500' },
+                        { name: 'documentation.zip', icon: 'fas fa-file-archive', type: 'file', color: 'text-yellow-300' }
+                    ],
+                    pictures: [
+                        { name: '假期照片', icon: 'fas fa-folder', type: 'folder', color: 'text-yellow-400' },
+                        { name: '截图2023.png', icon: 'fas fa-file-image', type: 'file', color: 'text-green-500' },
+                        { name: '头像.jpg', icon: 'fas fa-file-image', type: 'file', color: 'text-green-500' }
+                    ],
+                    music: [
+                        { name: '我的收藏', icon: 'fas fa-folder', type: 'folder', color: 'text-yellow-400' },
+                        { name: '最爱歌曲', icon: 'fas fa-folder', type: 'folder', color: 'text-yellow-400' },
+                        { name: '放松音乐.mp3', icon: 'fas fa-file-audio', type: 'file', color: 'text-blue-500' }
+                    ],
+                    documents: [
+                        { name: '工作文档', icon: 'fas fa-folder', type: 'folder', color: 'text-yellow-400' },
+                        { name: '学习资料', icon: 'fas fa-folder', type: 'folder', color: 'text-yellow-400' },
+                        { name: '报告.pdf', icon: 'fas fa-file-pdf', type: 'file', color: 'text-red-500' }
+                    ]
+                };
+                
+                // 显示默认文件夹内容
+                showFolder('home');
+                
+                // 文件夹点击事件
+                fileItems.forEach(item => {
+                    item.addEventListener('click', function() {
+                        const folder = this.dataset.folder;
+                        showFolder(folder);
+                    });
+                });
+                
+                // 显示文件夹内容
+                function showFolder(folder) {
+                    fileGrid.innerHTML = '';
+                    
+                    // 高亮当前选中的文件夹
+                    fileItems.forEach(item => {
+                        if (item.dataset.folder === folder) {
+                            item.style.background = 'rgba(94, 53, 177, 0.3)';
+                        } else {
+                            item.style.background = '';
+                        }
+                    });
+                    
+                    // 添加文件
+                    if (files[folder]) {
+                        files[folder].forEach(file => {
+                            const fileElement = document.createElement('div');
+                            fileElement.className = 'file-grid-item';
+                            fileElement.innerHTML = `
+                                <i class="${file.icon} ${file.color}"></i>
+                                <span>${file.name}</span>
+                            `;
+                            
+                            fileElement.addEventListener('click', function() {
+                                if (file.type === 'folder') {
+                                    showFolder(file.name.toLowerCase().replace(/\s+/g, '-'));
+                                } else {
+                                    alert(`打开文件: ${file.name}`);
+                                }
+                            });
+                            
+                            fileGrid.appendChild(fileElement);
+                        });
+                    }
+                }
+            }
+        };
+
+        // 开发文档插件
+        const DocViewerPlugin = {
+            id: 'doc-viewer',
+            name: '开发文档',
+            icon: 'fas fa-book',
+            render: function() {
+                return `
+                    <div class="doc-content">
+                        <h1 class="text-2xl font-bold mb-6 text-center">远航操作系统开发文档</h1>
+                        
+                        <div class="doc-section">
+                            <h2><i class="fas fa-plug mr-2"></i>插件系统架构</h2>
+                            <p>远航操作系统采用模块化设计，通过插件扩展系统功能。每个插件都是一个独立的JS模块，遵循统一的API规范。</p>
+                            
+                            <div class="code-block">
+                                // 插件基本结构<br>
+                                YuanhangOS.registerPlugin({<br>
+                                &nbsp;&nbsp;id: 'my-plugin',<br>
+                                &nbsp;&nbsp;name: '我的插件',<br>
+                                &nbsp;&nbsp;icon: 'fas fa-star',<br>
+                                &nbsp;&nbsp;init: function() {<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;// 初始化代码<br>
+                                &nbsp;&nbsp;},<br>
+                                &nbsp;&nbsp;render: function() {<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;// 返回HTML内容<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;return '&lt;div&gt;插件内容&lt;/div&gt;';<br>
+                                &nbsp;&nbsp;},<br>
+                                &nbsp;&nbsp;destroy: function() {<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;// 清理资源<br>
+                                &nbsp;&nbsp;}<br>
+                                });
+                            </div>
+                        </div>
+                        
+                        <div class="doc-section">
+                            <h2><i class="fas fa-code mr-2"></i>插件API参考</h2>
+                            <p>插件可以使用以下API与操作系统交互：</p>
+                            
+                            <div class="plugin-card">
+                                <h3 class="font-bold mb-2">YuanhangOS.openApp(appId)</h3>
+                                <p>打开指定应用。</p>
+                            </div>
+                            
+                            <div class="plugin-card">
+                                <h3 class="font-bold mb-2">YuanhangOS.focusWindow(window)</h3>
+                                <p>将指定窗口置顶。</p>
+                            </div>
+                            
+                            <div class="plugin-card">
+                                <h3 class="font-bold mb-2">YuanhangOS.getPlugins()</h3>
+                                <p>获取所有已注册插件。</p>
+                            </div>
+                            
+                            <div class="plugin-card">
+                                <h3 class="font-bold mb-2">YuanhangOS.getWindows()</h3>
+                                <p>获取所有已打开窗口。</p>
+                            </div>
+                        </div>
+                        
+                        <div class="doc-section">
+                            <h2><i class="fas fa-paint-brush mr-2"></i>UI设计指南</h2>
+                            <p>为了保持系统UI的一致性，请遵循以下设计原则：</p>
+                            <ul class="list-disc pl-8 mt-2 space-y-2">
+                                <li>使用半透明毛玻璃效果作为背景</li>
+                                <li>主色调为深紫色(#5e35b1)和靛蓝色(#3949ab)</li>
+                                <li>所有交互元素应有平滑的过渡动画</li>
+                                <li>使用Exo 2字体作为主要UI字体</li>
+                                <li>圆角半径统一为12px</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // 系统设置插件
+        const SettingsPlugin = {
+            id: 'settings',
+            name: '系统设置',
+            icon: 'fas fa-cog',
+            render: function() {
+                return `
+                    <div class="settings-panel">
+                        <div class="settings-sidebar">
+                            <div class="settings-category active" data-category="appearance">外观</div>
+                            <div class="settings-category" data-category="plugins">插件管理</div>
+                            <div class="settings-category" data-category="security">安全设置</div>
+                            <div class="settings-category" data-category="system">系统信息</div>
+                        </div>
+                        <div class="settings-content" id="settings-content">
+                            <h2 class="text-xl font-bold mb-6">外观设置</h2>
+                            
+                            <div class="settings-option">
+                                <label>主题</label>
+                                <select id="theme-select">
+                                    <option value="deep-purple">深空紫</option>
+                                    <option value="midnight-blue">午夜蓝</option>
+                                    <option value="nebula-red">星云红</option>
+                                </select>
+                            </div>
+                            
+                            <div class="settings-option">
+                                <label>透明度</label>
+                                <input type="range" id="opacity-slider" min="0" max="100" value="80">
+                                <span id="opacity-value">80%</span>
+                            </div>
+                            
+                            <div class="settings-option">
+                                <label>动画效果</label>
+                                <div class="flex items-center space-x-4">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="animations-toggle" checked class="mr-2"> 启用动画
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="performance-mode" class="mr-2"> 高性能模式
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+            init: function(window) {
+                const settingsContent = window.querySelector('#settings-content');
+                const categories = window.querySelectorAll('.settings-category');
+                
+                // 设置内容
+                const settingsData = {
+                    appearance: `
+                        <h2 class="text-xl font-bold mb-6">外观设置</h2>
+                        <div class="settings-option">
+                            <label>主题</label>
+                            <select id="theme-select">
+                                <option value="deep-purple">深空紫</option>
+                                <option value="midnight-blue">午夜蓝</option>
+                                <option value="nebula-red">星云红</option>
+                            </select>
+                        </div>
+                        <div class="settings-option">
+                            <label>透明度</label>
+                            <input type="range" id="opacity-slider" min="0" max="100" value="80">
+                            <span id="opacity-value">80%</span>
+                        </div>
+                        <div class="settings-option">
+                            <label>动画效果</label>
+                            <div class="flex items-center space-x-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="animations-toggle" checked class="mr-2"> 启用动画
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" id="performance-mode" class="mr-2"> 高性能模式
+                                </label>
+                            </div>
+                        </div>
+                    `,
+                    plugins: `
+                        <h2 class="text-xl font-bold mb-6">插件管理</h2>
+                        <div class="settings-option">
+                            <label>已安装插件</label>
+                            <div class="space-y-3 mt-3">
+                                <div class="flex justify-between items-center p-3 bg-black bg-opacity-30 rounded">
+                                    <div>
+                                        <h4 class="font-bold">终端插件</h4>
+                                        <p class="text-sm text-gray-400">提供命令行功能</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-black bg-opacity-30 rounded">
+                                    <div>
+                                        <h4 class="font-bold">天气插件</h4>
+                                        <p class="text-sm text-gray-400">显示实时天气信息</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="flex justify-between items-center p-3 bg-black bg-opacity-30 rounded">
+                                    <div>
+                                        <h4 class="font-bold">系统监控</h4>
+                                        <p class="text-sm text-gray-400">显示系统资源使用情况</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="w-full mt-4 bg-indigo-700 hover:bg-indigo-600 py-2 rounded-lg transition">
+                            安装新插件...
+                        </button>
+                    `,
+                    security: `
+                        <h2 class="text-xl font-bold mb-6">安全设置</h2>
+                        <div class="settings-option">
+                            <label>自动锁定</label>
+                            <select>
+                                <option>5分钟</option>
+                                <option>10分钟</option>
+                                <option>30分钟</option>
+                                <option>1小时</option>
+                            </select>
+                        </div>
+                        <div class="settings-option">
+                            <label>密码保护</label>
+                            <div class="flex space-x-3">
+                                <input type="password" placeholder="输入密码" class="flex-1 bg-black bg-opacity-30 border border-gray-700 rounded p-2">
+                                <button class="bg-indigo-700 px-4 rounded">设置</button>
+                            </div>
+                        </div>
+                    `,
+                    system: `
+                        <h2 class="text-xl font-bold mb-6">系统信息</h2>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span>系统版本</span>
+                                <span class="font-mono">Yuanhang OS 1.2.0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>内核版本</span>
+                                <span class="font-mono">Hydrogen v1.2</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>运行时间</span>
+                                <span class="font-mono">暂无统计</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>内存使用</span>
+                                <span class="font-mono">暂无统计</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>存储空间</span>
+                                <span class="font-mono">暂无统计</span>
+                            </div>
+                        </div>
+                    `
+                };
+                
+                // 分类点击事件
+                categories.forEach(category => {
+                    category.addEventListener('click', function() {
+                        const categoryName = this.dataset.category;
+                        
+                        // 高亮当前选中的分类
+                        categories.forEach(c => c.classList.remove('active'));
+                        this.classList.add('active');
+                        
+                        // 显示对应的设置内容
+                        settingsContent.innerHTML = settingsData[categoryName];
+                    });
+                });
+                
+                // 透明度滑块事件
+                const opacitySlider = window.querySelector('#opacity-slider');
+                const opacityValue = window.querySelector('#opacity-value');
+                
+                if (opacitySlider && opacityValue) {
+                    opacitySlider.addEventListener('input', function() {
+                        opacityValue.textContent = `${this.value}%`;
+                    });
+                }
+            }
+        };
+
+        // 图片库插件
+        const GalleryPlugin = {
+            id: 'gallery',
+            name: '图片库',
+            icon: 'fas fa-images',
+            render: function() {
+                return `
+                    <div class="p-8 text-center">
+                        <i class="fas fa-images text-5xl mb-4 text-indigo-300"></i>
+                        <h2 class="text-2xl font-bold mb-4">图片库</h2>
+                        <p class="text-gray-300">浏览和管理您的图片收藏</p>
+                        <div class="mt-6 grid grid-cols-3 gap-4">
+                            <div class="bg-black bg-opacity-20 rounded-lg h-32 flex items-center justify-center">
+                                <i class="fas fa-image text-3xl text-gray-400"></i>
+                            </div>
+                            <div class="bg-black bg-opacity-20 rounded-lg h-32 flex items-center justify-center">
+                                <i class="fas fa-image text-3xl text-gray-400"></i>
+                            </div>
+                            <div class="bg-black bg-opacity-20 rounded-lg h-32 flex items-center justify-center">
+                                <i class="fas fa-image text-3xl text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // 音乐播放器插件
+        const MusicPlugin = {
+            id: 'music',
+            name: '音乐播放器',
+            icon: 'fas fa-music',
+            render: function() {
+                return `
+                    <div class="p-8 text-center">
+                        <i class="fas fa-music text-5xl mb-4 text-indigo-300"></i>
+                        <h2 class="text-2xl font-bold mb-4">音乐播放器</h2>
+                        <p class="text-gray-300">享受您的音乐收藏</p>
+                        <div class="mt-6 bg-black bg-opacity-20 rounded-lg p-6">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h3 class="font-bold">当前播放</h3>
+                                    <p class="text-gray-400">远航系统主题曲</p>
+                                </div>
+                                <div class="flex space-x-4">
+                                    <button class="w-10 h-10 rounded-full bg-os-primary flex items-center justify-center">
+                                        <i class="fas fa-backward"></i>
+                                    </button>
+                                    <button class="w-10 h-10 rounded-full bg-os-primary flex items-center justify-center">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    <button class="w-10 h-10 rounded-full bg-os-primary flex items-center justify-center">
+                                        <i class="fas fa-forward"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="w-full bg-black bg-opacity-30 rounded-full h-2">
+                                <div class="bg-os-primary h-2 rounded-full" style="width: 35%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // 浏览器插件
+        const BrowserPlugin = {
+            id: 'browser',
+            name: '浏览器',
+            icon: 'fas fa-globe',
+            render: function() {
+                return `
+                    <div class="p-8 text-center">
+                        <i class="fas fa-globe text-5xl mb-4 text-indigo-300"></i>
+                        <h2 class="text-2xl font-bold mb-4">浏览器</h2>
+                        <p class="text-gray-300">浏览互联网</p>
+                        <div class="mt-6 bg-black bg-opacity-20 rounded-lg p-6">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-1 bg-black bg-opacity-30 rounded-lg px-4 py-2 flex items-center">
+                                    <i class="fas fa-search text-gray-400 mr-2"></i>
+                                    <span class="text-gray-400">搜索或输入网址</span>
+                                </div>
+                                <button class="ml-2 w-10 h-10 rounded-lg bg-os-primary flex items-center justify-center">
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4 mt-6">
+                                <div class="bg-black bg-opacity-30 rounded-lg p-4 flex flex-col items-center">
+                                    <i class="fas fa-star text-yellow-400 text-2xl mb-2"></i>
+                                    <span>常用网站</span>
+                                </div>
+                                <div class="bg-black bg-opacity-30 rounded-lg p-4 flex flex-col items-center">
+                                    <i class="fas fa-history text-blue-400 text-2xl mb-2"></i>
+                                    <span>历史记录</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // 应用商店插件
+        const StorePlugin = {
+            id: 'store',
+            name: '应用商店',
+            icon: 'fas fa-store',
+            render: function() {
+                return `
+                    <div class="p-8 text-center">
+                        <i class="fas fa-store text-5xl mb-4 text-indigo-300"></i>
+                        <h2 class="text-2xl font-bold mb-4">应用商店</h2>
+                        <p class="text-gray-300">发现和安装新应用</p>
+                        <div class="mt-6 grid grid-cols-2 gap-4">
+                            <div class="bg-black bg-opacity-20 rounded-lg p-4 flex flex-col items-center">
+                                <i class="fas fa-gamepad text-3xl mb-2 text-green-400"></i>
+                                <span>游戏</span>
+                            </div>
+                            <div class="bg-black bg-opacity-20 rounded-lg p-4 flex flex-col items-center">
+                                <i class="fas fa-tools text-3xl mb-2 text-blue-400"></i>
+                                <span>工具</span>
+                            </div>
+                            <div class="bg-black bg-opacity-20 rounded-lg p-4 flex flex-col items-center">
+                                <i class="fas fa-paint-brush text-3xl mb-2 text-purple-400"></i>
+                                <span>创意</span>
+                            </div>
+                            <div class="bg-black bg-opacity-20 rounded-lg p-4 flex flex-col items-center">
+                                <i class="fas fa-music text-3xl mb-2 text-yellow-400"></i>
+                                <span>音乐与音频</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        };
+
+        // 终端插件
+        const TerminalPlugin = {
+            id: 'terminal',
+            name: '终端',
+            icon: 'fas fa-terminal',
+            render: function() {
+                return `
+                    <div class="terminal">
+                        <div class="terminal-header">
+                            <span>终端 - bash</span>
+                        </div>
+                        <div class="terminal-content" id="terminal-output">
+                            <div>远航操作系统终端 v1.0</div>
+                            <div>输入 "help" 获取可用命令列表</div>
+                            <br>
+                            <div class="terminal-output">
+                                <div class="flex">
+                                    <span class="terminal-prompt">user@yuanhang-os:~$</span>
+                                    <span>help</span>
+                                </div>
+                                <div>可用命令:</div>
+                                <div>&nbsp;&nbsp;help - 显示帮助信息</div>
+                                <div>&nbsp;&nbsp;clear - 清除终端屏幕</div>
+                                <div>&nbsp;&nbsp;date - 显示当前日期和时间</div>
+                                <div>&nbsp;&nbsp;echo - 显示一行文本</div>
+                            </div>
+                        </div>
+                        <div class="terminal-input">
+                            <span class="terminal-prompt">user@yuanhang-os:~$</span>
+                            <input type="text" id="terminal-input">
+                        </div>
+                    </div>
+                `;
+            },
+            init: function(window) {
+                const terminalInput = window.querySelector('#terminal-input');
+                const terminalOutput = window.querySelector('#terminal-output');
+                
+                // 命令历史
+                let commandHistory = [];
+                let historyIndex = -1;
+                
+                // 焦点在输入框
+                terminalInput.focus();
+                
+                // 命令处理
+                terminalInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        const command = this.value.trim();
+                        
+                        if (command) {
+                            // 添加到历史
+                            commandHistory.push(command);
+                            historyIndex = commandHistory.length;
+                            
+                            // 显示命令
+                            addOutput(`<div class="flex"><span class="terminal-prompt">user@yuanhang-os:~$</span><span>${command}</span></div>`);
+                            
+                            // 处理命令
+                            processCommand(command);
+                            
+                            // 清空输入
+                            this.value = '';
+                        }
+                    } else if (e.key === 'ArrowUp') {
+                        // 上一条命令
+                        e.preventDefault();
+                        if (commandHistory.length > 0) {
+                            historyIndex = Math.max(0, historyIndex - 1);
+                            this.value = commandHistory[historyIndex];
+                        }
+                    } else if (e.key === 'ArrowDown') {
+                        // 下一条命令
+                        e.preventDefault();
+                        if (commandHistory.length > 0) {
+                            historyIndex = Math.min(commandHistory.length, historyIndex + 1);
+                            if (historyIndex < commandHistory.length) {
+                                this.value = commandHistory[historyIndex];
+                            } else {
+                                this.value = '';
+                            }
+                        }
+                    }
+                });
+                
+                // 添加输出
+                function addOutput(html) {
+                    terminalOutput.innerHTML += html;
+                    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                }
+                
+                // 处理命令
+                function processCommand(command) {
+                    const parts = command.split(' ');
+                    const cmd = parts[0].toLowerCase();
+                    const args = parts.slice(1);
+                    
+                    switch(cmd) {
+                        case 'help':
+                            addOutput(`
+                                <div>可用命令:</div>
+                                <div>&nbsp;&nbsp;help - 显示帮助信息</div>
+                                <div>&nbsp;&nbsp;clear - 清除终端屏幕</div>
+                                <div>&nbsp;&nbsp;date - 显示当前日期和时间</div>
+                                <div>&nbsp;&nbsp;echo - 显示一行文本</div>
+                            `);
+                            break;
+                            
+                        case 'clear':
+                            terminalOutput.innerHTML = '';
+                            break;
+                            
+                        case 'date':
+                            const now = new Date();
+                            addOutput(`<div>${now.toLocaleString()}</div>`);
+                            break;
+                            
+                        case 'echo':
+                            addOutput(`<div>${args.join(' ')}</div>`);
+                            break;
+                            
+                        default:
+                            addOutput(`<div>命令未找到: ${cmd}. 输入 'help' 查看可用命令。</div>`);
+                    }
+                }
+            }
+        };
+
+        // 计算器插件
+        const CalculatorPlugin = {
+            id: 'calculator',
+            name: '计算器',
+            icon: 'fas fa-calculator',
+            render: function() {
+                return `
+                    <div class="calculator">
+                        <div class="calculator-display" id="calc-display">0</div>
+                        <div class="calculator-buttons">
+                            <div class="calculator-btn" data-value="C">C</div>
+                            <div class="calculator-btn" data-value="±">±</div>
+                            <div class="calculator-btn" data-value="%">%</div>
+                            <div class="calculator-btn operator" data-value="÷">÷</div>
+                            
+                            <div class="calculator-btn" data-value="7">7</div>
+                            <div class="calculator-btn" data-value="8">8</div>
+                            <div class="calculator-btn" data-value="9">9</div>
+                            <div class="calculator-btn operator" data-value="×">×</div>
+                            
+                            <div class="calculator-btn" data-value="4">4</div>
+                            <div class="calculator-btn" data-value="5">5</div>
+                            <div class="calculator-btn" data-value="6">6</div>
+                            <div class="calculator-btn operator" data-value="-">-</div>
+                            
+                            <div class="calculator-btn" data-value="1">1</div>
+                            <div class="calculator-btn" data-value="2">2</div>
+                            <div class="calculator-btn" data-value="3">3</div>
+                            <div class="calculator-btn operator" data-value="+">+</div>
+                            
+                            <div class="calculator-btn" data-value="0">0</div>
+                            <div class="calculator-btn" data-value=".">.</div>
+                            <div class="calculator-btn equals" data-value="=">=</div>
+                        </div>
+                    </div>
+                `;
+            },
+            init: function(window) {
+                const display = window.querySelector('#calc-display');
+                const buttons = window.querySelectorAll('.calculator-btn');
+                
+                let currentInput = '0';
+                let previousInput = '0';
+                let operation = null;
+                let shouldResetInput = false;
+                
+                // 更新显示
+                function updateDisplay() {
+                    display.textContent = currentInput;
+                }
+                
+                // 按钮点击事件
+                buttons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const value = this.dataset.value;
+                        
+                        if ('0123456789.'.includes(value)) {
+                            // 数字或小数点
+                            if (shouldResetInput) {
+                                currentInput = value;
+                                shouldResetInput = false;
+                            } else {
+                                currentInput = currentInput === '0' ? value : currentInput + value;
+                            }
+                        } else if (value === 'C') {
+                            // 清除
+                            currentInput = '0';
+                            previousInput = '0';
+                            operation = null;
+                        } else if (value === '±') {
+                            // 正负号
+                            currentInput = (parseFloat(currentInput) * -1).toString();
+                        } else if (value === '%') {
+                            // 百分比
+                            currentInput = (parseFloat(currentInput) / 100).toString();
+                        } else if (['+', '-', '×', '÷'].includes(value)) {
+                            // 运算符
+                            if (operation !== null) calculate();
+                            previousInput = currentInput;
+                            operation = value;
+                            shouldResetInput = true;
+                        } else if (value === '=') {
+                            // 等于
+                            calculate();
+                            operation = null;
+                        }
+                        
+                        updateDisplay();
+                    });
+                });
+                
+                // 计算
+                function calculate() {
+                    let result;
+                    const prev = parseFloat(previousInput);
+                    const current = parseFloat(currentInput);
+                    
+                    if (isNaN(prev) || isNaN(current)) return;
+                    
+                    switch(operation) {
+                        case '+':
+                            result = prev + current;
+                            break;
+                        case '-':
+                            result = prev - current;
+                            break;
+                        case '×':
+                            result = prev * current;
+                            break;
+                        case '÷':
+                            result = prev / current;
+                            break;
+                        default:
+                            return;
+                    }
+                    
+                    currentInput = result.toString();
+                    previousInput = '0';
+                    shouldResetInput = true;
+                }
+                
+                // 初始显示
+                updateDisplay();
+            }
+        };
+
+        // 日历插件
+        const CalendarPlugin = {
+            id: 'calendar',
+            name: '日历',
+            icon: 'fas fa-calendar',
+            render: function() {
+                return `
+                    <div class="calendar-container">
+                        <div class="calendar-header">
+                            <div class="calendar-nav">
+                                <div class="calendar-nav-btn prev-month">
+                                    <i class="fas fa-chevron-left"></i>
+                                </div>
+                                <h2 class="calendar-current-date text-xl font-bold">2023年10月</h2>
+                                <div class="calendar-nav-btn next-month">
+                                    <i class="fas fa-chevron-right"></i>
+                                </div>
+                            </div>
+                            <div class="calendar-view-toggle">
+                                <div class="calendar-view-btn active" data-view="month">月</div>
+                                <div class="calendar-view-btn" data-view="week">周</div>
+                                <div class="calendar-view-btn" data-view="day">日</div>
+                            </div>
+                        </div>
+                        
+                        <div class="calendar-weekdays">
+                            <div>日</div>
+                            <div>一</div>
+                            <div>二</div>
+                            <div>三</div>
+                            <div>四</div>
+                            <div>五</div>
+                            <div>六</div>
+                        </div>
+                        
+                        <div class="calendar-days" id="calendar-days">
+                            <!-- 日历天数将通过JS动态生成 -->
+                        </div>
+                        
+                        <div class="calendar-events" id="calendar-events">
+                            <h3 class="text-md font-bold mb-2">今日事件</h3>
+                            <!-- 事件将通过JS动态生成 -->
+                        </div>
+                    </div>
+                `;
+            },
+            init: function(window) {
+                const currentDate = new Date();
+                let currentMonth = currentDate.getMonth();
+                let currentYear = currentDate.getFullYear();
+                
+                const calendarDays = window.querySelector('#calendar-days');
+                const currentDateElement = window.querySelector('.calendar-current-date');
+                const prevMonthBtn = window.querySelector('.prev-month');
+                const nextMonthBtn = window.querySelector('.next-month');
+                const viewButtons = window.querySelectorAll('.calendar-view-btn');
+                const eventsContainer = window.querySelector('#calendar-events');
+                
+                // 事件数据
+                const events = {
+                    '2023-10-15': [
+                        { time: '10:00', title: '团队会议', color: '#7e57c2' },
+                        { time: '14:30', title: '项目评审', color: '#5e35b1' }
+                    ],
+                    '2023-10-20': [
+                        { time: '09:00', title: '客户演示', color: '#3949ab' }
+                    ],
+                    '2023-10-25': [
+                        { time: '11:00', title: '午餐会议', color: '#7e57c2' },
+                        { time: '15:00', title: '产品发布', color: '#5e35b1' }
+                    ]
+                };
+                
+                // 渲染日历
+                function renderCalendar() {
+                    calendarDays.innerHTML = '';
+                    
+                    // 获取月份的第一天和最后一天
+                    const firstDay = new Date(currentYear, currentMonth, 1);
+                    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+                    const daysInMonth = lastDay.getDate();
+                    const firstDayIndex = firstDay.getDay(); // 0 = 周日, 1 = 周一, ...
+                    
+                    // 更新当前日期显示
+                    currentDateElement.textContent = `${currentYear}年${currentMonth + 1}月`;
+                    
+                    // 添加上个月的天数
+                    const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
+                    for (let i = firstDayIndex; i > 0; i--) {
+                        const day = document.createElement('div');
+                        day.classList.add('calendar-day', 'other-month');
+                        day.textContent = prevMonthLastDay - i + 1;
+                        calendarDays.appendChild(day);
+                    }
+                    
+                    // 添加本月的天数
+                    const today = new Date();
+                    for (let i = 1; i <= daysInMonth; i++) {
+                        const day = document.createElement('div');
+                        day.classList.add('calendar-day');
+                        day.textContent = i;
+                        day.dataset.date = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                        
+                        // 标记今天
+                        if (i === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear()) {
+                            day.classList.add('today');
+                        }
+                        
+                        // 检查是否有事件
+                        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                        if (events[dateStr]) {
+                            day.classList.add('has-event');
+                        }
+                        
+                        // 点击事件
+                        day.addEventListener('click', function() {
+                            showEvents(this.dataset.date);
+                        });
+                        
+                        calendarDays.appendChild(day);
+                    }
+                    
+                    // 添加下个月的天数
+                    const daysNeeded = 42 - (firstDayIndex + daysInMonth); // 6行7列 = 42个格子
+                    for (let i = 1; i <= daysNeeded; i++) {
+                        const day = document.createElement('div');
+                        day.classList.add('calendar-day', 'other-month');
+                        day.textContent = i;
+                        calendarDays.appendChild(day);
+                    }
+                    
+                    // 显示今天的事件
+                    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                    showEvents(todayStr);
+                }
+                
+                // 显示事件
+                function showEvents(dateStr) {
+                    eventsContainer.innerHTML = '<h3 class="text-md font-bold mb-2">' + formatDate(dateStr) + ' 事件</h3>';
+                    
+                    if (events[dateStr] && events[dateStr].length > 0) {
+                        events[dateStr].forEach(event => {
+                            const eventElement = document.createElement('div');
+                            eventElement.classList.add('calendar-event');
+                            eventElement.innerHTML = `<strong>${event.time}</strong> - ${event.title}`;
+                            eventElement.style.borderLeft = `3px solid ${event.color}`;
+                            eventsContainer.appendChild(eventElement);
+                        });
+                    } else {
+                        eventsContainer.innerHTML += '<div class="text-gray-400">今天没有安排事件</div>';
+                    }
+                }
+                
+                // 格式化日期
+                function formatDate(dateStr) {
+                    const date = new Date(dateStr);
+                    return `${date.getMonth() + 1}月${date.getDate()}日`;
+                }
+                
+                // 月份导航
+                prevMonthBtn.addEventListener('click', () => {
+                    currentMonth--;
+                    if (currentMonth < 0) {
+                        currentMonth = 11;
+                        currentYear--;
+                    }
+                    renderCalendar();
+                });
+                
+                nextMonthBtn.addEventListener('click', () => {
+                    currentMonth++;
+                    if (currentMonth > 11) {
+                        currentMonth = 0;
+                        currentYear++;
+                    }
+                    renderCalendar();
+                });
+                
+                // 视图切换
+                viewButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        viewButtons.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        // 这里可以添加切换视图的逻辑
+                    });
+                });
+                
+                // 初始渲染
+                renderCalendar();
+            }
+        };
+
+        // Deepseek浏览器插件（套壳PWA）
+        const DeepseekBrowserPlugin = {
+            id: 'deepseek-browser',
+            name: 'Deepseek',
+            icon: 'fas fa-window-restore',
+            render: function() {
+                return `
+                    <div class="browser">
+                        <div class="browser-tabs">
+                            <div class="browser-tab active">
+                                <span>Deepseek</span>
+                                <div class="browser-tab-close">
+                                    <i class="fas fa-times"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="browser-navbar">
+                            <div class="browser-nav-btn">
+                                <i class="fas fa-arrow-left"></i>
+                            </div>
+                            <div class="browser-nav-btn">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                            <div class="browser-nav-btn">
+                                <i class="fas fa-redo"></i>
+                            </div>
+                            <div class="browser-url-bar">
+                                <i class="fas fa-lock"></i>
+                                <input type="text" class="browser-url-input" value="https://www.deepseek.com" readonly>
+                            </div>
+                            <div class="browser-nav-btn">
+                                <i class="fas fa-home"></i>
+                            </div>
+                        </div>
+                        <div class="browser-content">
+                            <iframe class="browser-iframe" src="https://www.deepseek.com" frameborder="0"></iframe>
+                        </div>
+                    </div>
+                `;
+            },
+            init: function(window) {
+                const iframe = window.querySelector('.browser-iframe');
+                const backBtn = window.querySelector('.browser-nav-btn:nth-child(1)');
+                const forwardBtn = window.querySelector('.browser-nav-btn:nth-child(2)');
+                const refreshBtn = window.querySelector('.browser-nav-btn:nth-child(3)');
+                const homeBtn = window.querySelector('.browser-nav-btn:nth-child(5)');
+                
+                // 导航按钮事件
+                backBtn.addEventListener('click', function() {
+                    try {
+                        iframe.contentWindow.history.back();
+                    } catch (e) {
+                        console.log('无法导航后退');
+                    }
+                });
+                
+                forwardBtn.addEventListener('click', function() {
+                    try {
+                        iframe.contentWindow.history.forward();
+                    } catch (e) {
+                        console.log('无法导航前进');
+                    }
+                });
+                
+                refreshBtn.addEventListener('click', function() {
+                    iframe.src = iframe.src;
+                });
+                
+                homeBtn.addEventListener('click', function() {
+                    iframe.src = 'https://www.deepseek.com';
+                });
+                
+                // 标签关闭按钮
+                const closeBtn = window.querySelector('.browser-tab-close');
+                closeBtn.addEventListener('click', function() {
+                    alert('在真实应用中，这将关闭标签页。');
+                });
+            }
+        };
+
+        const DitiepaiPlugin = {
+            id: 'ditiepai',
+            name: '地铁派——上海交通城建论坛',
+            icon: 'fas fa-subway',
+            render: function() {
+                return `
+                    <div class="browser">
+                        <div class="browser-tabs">
+                            <div class="browser-tab active">
+                                <span>地铁派</span>
+                                <div class="browser-tab-close">
+                                    <i class="fas fa-times"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="browser-navbar">
+                            <div class="browser-nav-btn">
+                                <i class="fas fa-arrow-left"></i>
+                            </div>
+                            <div class="browser-nav-btn">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                            <div class="browser-nav-btn">
+                                <i class="fas fa-redo"></i>
+                            </div>
+                            <div class="browser-url-bar">
+                                <i class="fas fa-lock"></i>
+                                <input type="text" class="browser-url-input" value="https://sh.ditiepai.cn/" readonly>
+                            </div>
+                            <div class="browser-nav-btn">
+                                <i class="fas fa-home"></i>
+                            </div>
+                        </div>
+                        <div class="browser-content">
+                            <iframe class="browser-iframe" src="https://sh.ditiepai.cn/" frameborder="0"></iframe>
+                        </div>
+                    </div>
+                `;
+            },
+            init: function(window) {
+                const iframe = window.querySelector('.browser-iframe');
+                const backBtn = window.querySelector('.browser-nav-btn:nth-child(1)');
+                const forwardBtn = window.querySelector('.browser-nav-btn:nth-child(2)');
+                const refreshBtn = window.querySelector('.browser-nav-btn:nth-child(3)');
+                const homeBtn = window.querySelector('.browser-nav-btn:nth-child(5)');
+                
+                refreshBtn.addEventListener('click', function() {
+                    iframe.src = iframe.src;
+                });
+                
+                homeBtn.addEventListener('click', function() {
+                    iframe.src = 'https://sh.ditiepai.cn/';
+                });
+            }
+        };
+
+        // 初始化系统
+        document.addEventListener('DOMContentLoaded', function() {
+            YuanhangOS.init();
+        });
+    </script>
+</body>
+</html>
